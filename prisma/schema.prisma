@@ -1,0 +1,60 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider             = "prisma-client-py"
+  interface            = "asyncio"
+  recursive_type_depth = 5
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:dev.db"
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  subject String
+  text    String // plain-text
+  html    String? // HTML-версия
+
+  task Task[]
+}
+
+model TaskRecipient {
+  task        Task      @relation(fields: [taskId], references: [id])
+  taskId      String
+  recipient   Recipient @relation(fields: [recipientId], references: [id])
+  recipientId String
+
+  @@id([taskId, recipientId])
+}
+
+// Получатели (могут быть как подписчиками, так и одноразовыми email)
+model Recipient {
+  id    String @id @default(cuid())
+  email String @unique
+
+  // Связь с сообщениями
+  tasks TaskRecipient[]
+}
+
+model Task {
+  id         String   @id @default(cuid())
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  title      String
+
+  message   Message @relation(fields: [messageId], references: [id])
+  messageId String
+
+  status String @default("draft") // "draft" | "sent" | "failed"
+
+  recipients TaskRecipient[]
+}

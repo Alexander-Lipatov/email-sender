@@ -1,0 +1,16 @@
+{% extends "main.html" %}
+
+{% block crud_container %}
+
+<form method="post">
+    <input type="text" value name="subject" placeholder="Тема">
+    <br>
+    <textarea name="message"
+        placeholder="Текст сообщения"></textarea>
+    <br>
+    <textarea name="emails" placeholder="Список email адресов"></textarea>
+    <br>
+
+    <input type="submit" value="send" />
+</form>
+{% endblock %}

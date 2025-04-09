@@ -1,0 +1,19 @@
+{% extends "main.html" %}
+
+{% block crud_container %}
+    <section class="container-fluid">
+        <h2>Task {{task.title}} by id:{{task.id}}</h2>
+        <br>
+        <div class="card">
+            Тема: {{message.subject}}
+            <br>
+            Текст: {{message.text}}
+            
+        </div>
+        <div>
+            {% for tr in recipients %}
+            {{tr.recipient.email}} | 
+            {% endfor %}
+        </div>
+    </section>
+{% endblock %}

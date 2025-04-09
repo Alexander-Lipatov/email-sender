@@ -1,0 +1,20 @@
+
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.link-to-create{
+    background-color: white;
+    color: #146fff;
+    text-decoration: none;
+    width: 140px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 40px;
+    box-shadow: 5 3px 10px black;
+}
