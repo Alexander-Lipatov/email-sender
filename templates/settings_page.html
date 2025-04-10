@@ -1,0 +1,18 @@
+{% extends "main.html" %}
+
+
+{% block crud_container %}
+
+<form action="/settings" method="post">
+
+    <input type="text" value="{{settings.sender_email}}"  name="sender_email">
+    <input type="text" value="{{settings.smtp_server}}"  name="smtp_server">
+    <input type="text" value="{{settings.smtp_port}}"  name="smtp_port">
+    <input type="text" value="{{settings.login}}"  name="login">
+    <input type="text" value="{{settings.password}}"  name="password">
+    <textarea  name="signature">{{settings.signature}}</textarea>
+    <input type="submit" value="save">
+
+</form>
+
+{% endblock %}

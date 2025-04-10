@@ -1,6 +1,9 @@
 
+from src.config.settings import settings
+from src.service.mail_sender import send_email_with_semaphore
+import asyncio
 from fastapi.responses import HTMLResponse
-from fastapi import FastAPI, Form, status, Body, HTTPException, Request
+from fastapi import FastAPI, Form, status, Body, HTTPException, Request, BackgroundTasks
 from fastapi.responses import RedirectResponse
 from fastapi import FastAPI, status
 from fastapi.staticfiles import StaticFiles
@@ -74,10 +77,7 @@ async def create_mail(request: Request):
 @app.post('/create')
 async def create_mail(
     request: Request,
-    # subject: str = Form(...),
-    # text: str = Form(...),
-    # html: str = Form(None),
-    # recipient_ids: list[str] = Form(...),  # список ID получателей
+    bg_tasks: BackgroundTasks,
 ):
 
     form = await request.form()
@@ -92,7 +92,7 @@ async def create_mail(
 
     task = await db.task.create(
         data={
-            "title": 'title_message',
+            "title": form_data['subject'],
             "message": {
                 "create": {
                     "subject": form_data['subject'],
@@ -118,3 +118,59 @@ async def create_mail(
     await db.disconnect()
 
     return RedirectResponse("/", status_code=303)
+
+
+@app.post("/tasks/{task_id}/send")
+async def send_task(task_id: str, bg_tasks: BackgroundTasks) -> dict:
+    await db.connect()
+
+    task = await db.task.find_unique(
+        where={
+            "id": task_id,
+        },
+        include={
+            "message": True,
+            "recipients": {
+                "include": {
+                    "recipient": True
+                }
+
+            }
+        }
+    )
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    await db.disconnect()
+    print(task)
+
+    for recipient in task.recipients:
+        bg_tasks.add_task(
+            send_email_with_semaphore,
+            'lap1993.12@amber-sound.ru',
+            recipient.recipient.email,
+            task.message.subject,
+            task.message.text,
+
+        )
+    return RedirectResponse("/", status_code=303)
+
+
+@app.get("/settings")
+async def get_settings(request: Request) -> HTMLResponse:
+
+    return templates.TemplateResponse("settings_page.html", {"request": request, "settings": settings})
+
+
+@app.post("/settings")
+async def update_settings(request: Request, bg_tasks: BackgroundTasks):
+    form = await request.form()
+    form_data = dict(form)
+    print(form_data)
+    settings.sender_email = form_data['sender_email']
+    settings.smtp_server = form_data['smtp_server']
+    settings.smtp_port = int(form_data['smtp_port'])
+    settings.login = form_data['login']
+    settings.password = form_data['password']
+    settings.signature = form_data['signature']
+    settings.save_to_json()
+    return RedirectResponse("/settings", status_code=303)
