@@ -1,4 +1,5 @@
 
+from contextlib import asynccontextmanager
 from src.config.settings import settings
 from src.service.mail_sender import send_email_with_semaphore
 import asyncio
@@ -12,15 +13,26 @@ from prisma import Prisma
 from pydantic import BaseModel
 
 
-app = FastAPI()
+
+
 db: Prisma = Prisma()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
+prisma = Prisma()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await prisma.connect()
+    app.state.prisma = prisma
+    yield
+    await prisma.disconnect()
+
+app = FastAPI(lifespan=lifespan)
 
 
 @app.get("/")
 async def get_all_messages(request: Request) -> HTMLResponse:
-    await db.connect()
 
     tasks = await db.task.find_many(
         order={
@@ -28,14 +40,12 @@ async def get_all_messages(request: Request) -> HTMLResponse:
         },
     )
 
-    await db.disconnect()
     return templates.TemplateResponse("tasks.html", {"request": request, "tasks": tasks})
 
 
 @app.get("/tasks/{task_id}")
 async def get_(task_id: str, request: Request):
 
-    await db.connect()
 
     task = await db.task.find_unique(
         where={
@@ -52,7 +62,6 @@ async def get_(task_id: str, request: Request):
         }
     )
 
-    await db.disconnect()
     if task:
         return templates.TemplateResponse("task_detail.html", {"request": request, "task": task, 'message': task.message, "recipients": task.recipients})
 
@@ -88,7 +97,6 @@ async def create_mail(
     print(form_data)
     print()
 
-    await db.connect()
 
     task = await db.task.create(
         data={
@@ -115,7 +123,6 @@ async def create_mail(
         }
     )
 
-    await db.disconnect()
 
     return RedirectResponse("/", status_code=303)
 
